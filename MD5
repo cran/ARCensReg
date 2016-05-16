@@ -1,0 +1,8 @@
+54aed87abc63ed4e26e5663d5ac266d6 *DESCRIPTION
+38e9c716d7ed55e07d74ed0a694dc286 *NAMESPACE
+eb467b8619ce68d9ff4e3646aa0becd7 *R/auxfunctions.R
+c033b71b5d3ff51f89e13c5cb8b3cfce *R/finalfunction.R
+eaaba9a898d11605167571b2caa78c2e *R/princfunction.R
+310527e8dd9457dd91df1949d250eb3a *data/CloudCeiling.txt.gz
+b22cba493d22818ce4e96ce056907a1e *man/CloudCeiling.Rd
+04515c1a4c13821ab4096ae22cf566f5 *man/arcensreg.Rd
