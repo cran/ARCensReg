@@ -39,7 +39,7 @@ lc = function(pi,D,n) {
   return(-l)
 }
 
-############estimar pi - caso sem censura
+############estimar pi - caso sem censura -- normal
 lcc = function(pi,y,x) {
   n = length(y)
   phi =estphit(pi)
@@ -56,141 +56,146 @@ lcc = function(pi,y,x) {
 ################################################################################
 ## Log-likelihood ##
 ################################################################################
-
-LogVerosCensLeft<-function(cc,y,media,Psi){
+LogVerosCens<-function(cc,y,media,Psi,cens){
   m=length(cc)
   gammai=media
-  
+
   if(sum(cc)==0){
-    ver<-dmvnorm(as.vector(y),as.vector(gammai),Psi)
+    ver<-log(dmvnorm(as.vector(y),as.vector(gammai),Psi))
   }
   if(sum(cc)>0){
     if(sum(cc)==m){
       auxupper<-y-gammai
-      ver<- pmvnorm(upper=c(auxupper),mean=rep(0,sum(cc)),sigma=Psi)
-    }
+      ver<- log(pmvnorm(upper=c(auxupper),mean=rep(0,sum(cc)),sigma=Psi))
+      }
     else{
+      vero = numeric(2)
       muc<- gammai[cc==1,]+Psi[cc==1,cc==0]%*%solve(Psi[cc==0,cc==0])%*%(y[cc==0]-gammai[cc==0,])
       Sc<- Psi[cc==1,cc==1]-Psi[cc==1,cc==0]%*%solve(Psi[cc==0,cc==0])%*%Psi[cc==0,cc==1]
       auxupper<- y[cc==1]-muc
-      ver<-dmvnorm(y[cc==0],gammai[cc==0,],Psi[cc==0,cc==0])*
-        (pmvnorm(upper=c(auxupper),sigma=Sc))
+      vero[1] = dmvnorm(y[cc==0],gammai[cc==0,],Psi[cc==0,cc==0])
+      vero[2]  = pmvnorm(upper=c(auxupper),sigma=Sc)
+      if(length(which(vero == 0)) > 0) vero[which(vero == 0)] <- .Machine$double.xmin
+      ver = sum(log(vero))
     }
   }
-  
   obj.out <- list(ver = ver)
   return(obj.out)
-  
 }
-
-LogVerosCensRig<-function(cc,y,media,Psi){  
-  gammai=as.matrix(media)
-  m=length(cc)
-  
-  if(sum(cc)==0){
-    ver<-dmvnorm(as.vector(y),as.vector(gammai),Psi)
-  }
-  if(sum(cc)>0){
-    if(sum(cc)==m){
-      auxupper<-y-gammai
-      ver<- 1-pmvnorm(upper=c(auxupper),mean=rep(0,sum(cc)),sigma=Psi)
-    }
-    else{
-      muc<- gammai[cc==1,]+Psi[cc==1,cc==0]%*%solve(Psi[cc==0,cc==0])%*%(y[cc==0]-gammai[cc==0,])
-      Sc<- Psi[cc==1,cc==1]-Psi[cc==1,cc==0]%*%solve(Psi[cc==0,cc==0])%*%Psi[cc==0,cc==1]
-      auxupper<- y[cc==1]-muc
-      ver<-dmvnorm(y[cc==0],gammai[cc==0,],Psi[cc==0,cc==0])*
-        (1-pmvnorm(upper=c(auxupper),sigma=Sc))
-    }
-  }    
-  
-  obj.out <- list(ver = ver)
-  return(obj.out)
-  
-}
-
 ################################################################################
 ## Amostrador Gibbs
 ################################################################################
 
+amostradordegibbs <- function(M,M0,nj,t1,cc1,y1,media,Gama,cens,miss=NULL){
 
-amostradordegibbs <- function(M,M0,nj,t1,cc1,y1,media,Gama,miss,cens){
-  
-  draws <- matrix(NA,nrow=M,ncol=nj)
-  draws[1,] <- t1
-  
   if (length(miss)>0) {
     g= media
+    cc1[miss] = 0
     t1[-miss] <- y1[-miss]
     muc <- as.vector(g[miss]+Gama[miss,-miss]%*%solve(Gama[-miss,-miss])%*%
                        (y1[-miss]-g[-miss]))
-    #Sc <- Gama[miss,miss]-Gama[miss,-miss]%*%solve(Gama[-miss,-miss])%*%
-    #  Gama[-miss,miss]
-    #ym <- rtmvnorm(1, mean = muc, sigma = Sc, lower = rep(-Inf, length = length(muc)),
-    #               upper = rep(Inf, length = length(muc)), algorithm="gibbs", thinning=2)
-    y1[miss] = muc
+    y1[miss] =  t1[miss]= muc
   }
-  
-  if(sum(cc1)==0){  
-    for(i in 2:M){  
-      draws[i,] <- y1
+    draws <- matrix(NA,nrow=M,ncol=nj)
+    draws[1,1:nj] <- t1
+
+    gammai <- media
+
+    if(sum(cc1)==0){
+      for(i in 2:M){
+        t1 <- y1
+        draws[i,1:nj] <- t1
+      }
     }
-  }
-  if(sum(cc1)>0 & sum(cc1)==nj){  
-    for(i in 2:M){
-      g <- as.vector(media)
+    else {
       if (cens=='left') {
-        t1 <- as.vector(rtmvnorm(1, mean = g, sigma = Gama, lower = rep(-Inf,
-                        length = length(g)), upper = y1, algorithm="gibbs", thinning=2))
-      }
-      else {
-        t1 = as.vector(rtmvnorm(1, mean = g, sigma = Gama, upper = rep(Inf, 
-                        length = length(g)), lower = y1, algorithm="gibbs", thinning=2)) 
-      }
-      draws[i,] <- t1
-    }
-  }	
-  if(sum(cc1)>0 & sum(cc1)<nj){
-    if(sum(cc1)==1){
-      for(i in 2:M){
-        g <- media
-        t1[cc1==0] <- y1[cc1==0]
-        muc <- as.numeric(g[cc1==1]+Gama[cc1==1,cc1==0]%*%solve(Gama[cc1==0,cc1==0])%*%(y1[cc1==0]-g[cc1==0]))
-        Sc <- as.numeric(Gama[cc1==1,cc1==1]-Gama[cc1==1,cc1==0]%*%solve(Gama[cc1==0,cc1==0])%*%Gama[cc1==0,cc1==1])
-        yr <-  ifelse(cens=='left',rtnorm(1, mean = muc, sd=sqrt(Sc), lower=-Inf, upper=y1[cc1==1]),
-                      rtnorm(1, mean = muc, sd=sqrt(Sc), upper=Inf, lower=y1[cc1==1]))
-        t1[cc1==1] <- yr
-        draws[i,] <- t1
-      }
-    }
-    else{
-      for(i in 2:M){
-        g <- media
-        t1[cc1==0] <- y1[cc1==0]
-        muc <- as.vector(g[cc1==1]+Gama[cc1==1,cc1==0]%*%solve(Gama[cc1==0,cc1==0])%*%(y1[cc1==0]-g[cc1==0]))
-        Sc <- Gama[cc1==1,cc1==1]-Gama[cc1==1,cc1==0]%*%solve(Gama[cc1==0,cc1==0])%*%Gama[cc1==0,cc1==1]
-        if (cens == 'left') {
-          yr <- rtmvnorm(1, mean = muc, sigma = Sc, lower = rep(-Inf, length = length(muc)),
-                                upper = y1[cc1==1], algorithm="gibbs", thinning=2)
+        if(sum(cc1)>0 & sum(cc1)==nj){
+          for(i in 2:M){
+            g <- gammai
+            g <- as.vector(g)
+            t1 <- as.vector(rtmvnorm(1, mean = g, sigma = (Gama), lower = rep(-Inf, length = length(g)), upper = y1,
+                                     algorithm="gibbs", thinning=2))
+            draws[i,1:nj] <- t1
+          }
         }
-        else {
-          yr <- rtmvnorm(1, mean = muc, sigma = Sc, upper = rep(Inf, length = length(muc)),
-                                lower = y1[cc1==1], algorithm="gibbs", thinning=2)
+        if(sum(cc1)>0 & sum(cc1)<nj){
+          if(sum(cc1)==1){
+            for(i in 2:M){
+              g <- gammai
+              t1[cc1==0] <- y1[cc1==0]
+              muc <- g[cc1==1]+Gama[cc1==1,cc1==0]%*%solve(Gama[cc1==0,cc1==0])%*%(y1[cc1==0]-g[cc1==0])
+              muc <- as.vector(muc)
+              Sc <- Gama[cc1==1,cc1==1]-Gama[cc1==1,cc1==0]%*%solve(Gama[cc1==0,cc1==0])%*%Gama[cc1==0,cc1==1]
+              Sc <- as.numeric(Sc)
+              y_r <-  rtnorm(1, mean = muc, sd=(sqrt(Sc)), lower=-Inf, upper=y1[cc1==1])
+              t1[cc1==1] <- y_r
+              draws[i,1:nj] <- t1
+            }
+          }
+          else{
+            for(i in 2:M){
+              g <- gammai
+              t1[cc1==0] <- y1[cc1==0]
+              muc <- g[cc1==1]+Gama[cc1==1,cc1==0]%*%solve(Gama[cc1==0,cc1==0])%*%(y1[cc1==0]-g[cc1==0])
+              muc <- as.vector(muc)
+              Sc <- Gama[cc1==1,cc1==1]-Gama[cc1==1,cc1==0]%*%solve(Gama[cc1==0,cc1==0])%*%Gama[cc1==0,cc1==1]
+              y_r <- rtmvnorm(1, mean = muc, sigma = (Sc), lower = rep(-Inf, length = length(muc)), upper = y1[cc1==1],
+                              algorithm="gibbs", thinning=2)
+              t1[cc1==1] <- y_r
+              draws[i,1:nj] <- t1
+            }
+          }
         }
-        t1[cc1==1] <- yr
-        draws[i,] <- t1
       }
+      if (cens=='right') {
+        if(sum(cc1)>0 & sum(cc1)==nj){
+          for(i in 2:M){
+            g <- gammai
+            g <- as.vector(g)
+            t1 <- as.vector(rtmvnorm(1, mean = g, sigma = (Gama), upper = rep(Inf, length = length(g)), lower = y1,
+                                     algorithm="gibbs", thinning=2))
+            draws[i,1:nj] <- t1
+          }
+        }
+        if(sum(cc1)>0 & sum(cc1)<nj){
+          if(sum(cc1)==1){
+            for(i in 2:M){
+              g <- gammai
+              t1[cc1==0] <- y1[cc1==0]
+              muc <- g[cc1==1]+Gama[cc1==1,cc1==0]%*%solve(Gama[cc1==0,cc1==0])%*%(y1[cc1==0]-g[cc1==0])
+              muc <- as.vector(muc)
+              Sc <- Gama[cc1==1,cc1==1]-Gama[cc1==1,cc1==0]%*%solve(Gama[cc1==0,cc1==0])%*%Gama[cc1==0,cc1==1]
+              Sc <- as.numeric(Sc)
+              y_r <-  rtnorm(1, mean = muc, sd=(sqrt(Sc)), upper=Inf, lower=y1[cc1==1])
+              t1[cc1==1] <- y_r
+              draws[i,1:nj] <- t1
+            }
+          }
+          else{
+            for(i in 2:M){
+              g <- gammai
+              t1[cc1==0] <- y1[cc1==0]
+              muc <- g[cc1==1]+Gama[cc1==1,cc1==0]%*%solve(Gama[cc1==0,cc1==0])%*%(y1[cc1==0]-g[cc1==0])
+              muc <- as.vector(muc)
+              Sc <- Gama[cc1==1,cc1==1]-Gama[cc1==1,cc1==0]%*%solve(Gama[cc1==0,cc1==0])%*%Gama[cc1==0,cc1==1]
+              y_r <- rtmvnorm(1, mean = muc, sigma = (Sc), upper = rep(Inf, length = length(muc)), lower = y1[cc1==1],
+                              algorithm="gibbs", thinning=2)
+              t1[cc1==1] <- y_r
+              draws[i,1:nj] <- t1
+            }
+          }
+        }
+      }
+
     }
-  }		
-  
+
   # Amostra com burnin (M0)
   amostragibbs <- draws[(M0+1):M,]
-  
+
   obj.out <- list(amostragibbs = amostragibbs)
   return(obj.out)
-  
-}
 
+}
 
 ###############################################################################
 ##Derivadas
@@ -209,6 +214,28 @@ Dbeta = function(beta,y,x,p) {
 }
 Dphi1 = function(beta,y,xx,p) matrix(Dbeta(beta,y,xx,p)[2:(p+1),1])
 Dphiphi2 = function(beta,phi,y,xx,p) (Dbeta(beta,y,xx,p)[2:(p+1),2:(p+1)])%*%phi
+einvM = function(phi,e) {
+  n = length(e)
+  invM = solve(MatArp(phi,n))
+  return(t(e)%*%invM)
+}
+
+M1 = function(phi,yy){
+  n= nrow(yy)
+  return(sum(diag(yy%*%solve(MatArp(phi,n)))))
+}
+M1i = function(phi,yy,Di){
+  n= nrow(yy)
+  return(sum(diag(yy%*%solve(MatArp(phi,n))%*%Di)))
+}
+M2 = function(phi,vec1,vec2){
+  n= nrow(vec2)
+  return(vec1%*%solve(MatArp(phi,n))%*%vec2)
+}
+M3 = function(phi,vec1){
+  n= length(vec1)
+  return(t(vec1)%*%solve(MatArp(phi,n)))
+}
 
 Jt = function(theta,y,x) {
   l=ncol(x)
@@ -219,8 +246,9 @@ Jt = function(theta,y,x) {
   p=length(phi)
   Mn = MatArp(phi,n)
   lambda = matrix(c(-1,phi))
-  spi = t(lambda)%*%Dbeta(beta,y,x,p)%*%lambda
-  dbeta = 1/sig2*(t(x)%*%solve(Mn)%*%y - t(x)%*%solve(Mn)%*%x%*%beta)
+  spi =t(lambda)%*%Dbeta(beta,y,x,p)%*%lambda
+  invMn = solve(Mn)
+  dbeta = 1/sig2*(t(x)%*%invMn%*%y - t(x)%*%invMn%*%x%*%beta)
   dsig2 = -n/2/sig2 +1/2/sig2^2*spi
   da = matrix(jacobian(aphi,phi))
   dphi = -1/sig2*(-Dphi1(beta,y,x,p) + Dphiphi2(beta,phi,y,x,p))-1/2*da
@@ -240,7 +268,7 @@ Ht = function(theta,y,x) {
   spi = t(lambda)%*%Dbeta(beta,y,x,p)%*%lambda
   invMn = solve(Mn)
   dbetabeta = -1/sig2*(t(x)%*%invMn%*%x)
-  dsig2sig2 = n/2/sig2^2 - 1/sig2^3*spi
+  dsig2sig2 = n/2/sig2^2 - 1*spi/sig2^3
   daa = (hessian(aphi,phi))
   dphiphi = -1/sig2*Dbeta(beta,y,x,p)[2:(p+1),2:(p+1)] - 1/2*daa
   dbetasig2 = -1/sig2^2*(t(x)%*%invMn%*%y - t(x)%*%invMn%*%x%*%beta )
@@ -257,4 +285,119 @@ Ht = function(theta,y,x) {
   H[1:l,(l+2):r] = t(dbetaphi)
   H[l+1,(l+2):r] = H[(l+2):r,l+1] = dphisig
   return(H)
+}
+
+Qt = function(theta,y,yy,x) {
+  l=ncol(x)
+  n =length(y)
+  r = length(theta)
+  beta = matrix(theta[1:l])
+  sig2 = theta[l+1]
+  phi = theta[(l+2):r]
+  p = length(phi)
+  Mn = MatArp(phi,n)
+  invMn = solve(Mn)
+  delta = sum(diag(yy%*%invMn)) - 2*t(y)%*%invMn%*%x%*%beta+t(beta)%*%t(x)%*%invMn%*%x%*%beta
+  dbetabeta = -1/sig2*(t(x)%*%invMn%*%x)
+  dsig2sig2 = n/2/sig2^2 - 1*delta/sig2^3
+  daa = (hessian(aphi,phi)) #hessiana do log(det(Mn))
+  dphiphi = - 1/2*daa -1/2/sig2*(hessian(M1,phi,yy=yy)+hessian(M2,phi,vec1=t(-2*y+x%*%beta),vec2=x%*%beta))
+  dbetasig2 = -1/sig2^2*(t(x)%*%invMn%*%y - t(x)%*%invMn%*%x%*%beta )
+  dbetaphi = 1/sig2*t(jacobian(M2,phi,vec1=t(y-x%*%beta),vec2=x))
+  dphisig = 1/2/sig2^2*(jacobian(M1,phi,yy=yy)+ jacobian(M2,phi,vec1=t(-2*y+x%*%beta),vec2=x%*%beta))
+  H = matrix(0,r,r)
+  H[1:l,1:l] = dbetabeta
+  H[l+1,l+1] = dsig2sig2
+  H[(l+2):r,(l+2):r] = dphiphi
+  H[l+1,1:l] = H[1:l,l+1] = dbetasig2
+  H[(l+2):r,1:l] = dbetaphi
+  H[1:l,(l+2):r] = t(dbetaphi)
+  H[l+1,(l+2):r] = H[(l+2):r,l+1] = dphisig
+  return(H)
+}
+
+######################################################
+#local influence
+######################################################
+#ytil = y+w
+deltaw = function(theta,y,x) {
+  l=ncol(x)
+  n =length(y)
+  r = length(theta)
+  beta = matrix(theta[1:l])
+  sig2 = theta[l+1]
+  phi = theta[(l+2):r]
+  p = length(phi)
+  Mn = MatArp(phi,n)
+  invMn = solve(Mn)
+  e = y-x%*%beta
+  dbeta = 1/sig2*t(x)%*%invMn
+  dsig2 = 1/sig2^2*t(e)%*%invMn
+  dphi = -1/sig2*t(jacobian(einvM,phi,e=e))
+  ddelta = rbind(dbeta,dsig2,dphi)
+  return(ddelta)
+}
+
+################################################
+#scheme 2 ----> Sigmatil = D(w)*Sigma
+deltaSigi = function(theta,y,yy,x,i) {
+  l=ncol(x)
+  n =length(y)
+  r = length(theta)
+  beta = matrix(theta[1:l])
+  sig2 = theta[l+1]
+  phi = theta[(l+2):r]
+  p = length(phi)
+  Mn = MatArp(phi,n)
+  invMn = solve(Mn)
+  e = y-x%*%beta
+  vec = rep(0,n);vec[i]=1
+  Di = diag(vec)
+  invMDi = invMn%*%Di
+  dbeta = -1/sig2*t(x)%*%invMDi%*%e
+  dsig2 = -1/2/sig2^2*(sum(diag(yy%*%invMDi))-2*t(y)%*%invMDi%*%x%*%beta+t(x%*%beta)%*%invMDi%*%x%*%beta)
+  d1 = jacobian(M1i,phi,yy=yy,Di=Di)
+  dphi = 1/2/sig2*t((d1)-2*jacobian(M2,phi,vec1 = t(y),vec2=Di%*%x%*%beta)+jacobian(M2,phi,vec1 = t(x%*%beta),vec2=Di%*%x%*%beta))
+  ddelta = rbind(dbeta,dsig2,dphi)
+  return(ddelta)
+}
+deltaSigi = function(theta,y,yy,x,i) {
+  l=ncol(x)
+  n =length(y)
+  r = length(theta)
+  beta = matrix(theta[1:l])
+  sig2 = theta[l+1]
+  phi = theta[(l+2):r]
+  p = length(phi)
+  Mn = MatArp(phi,n)
+  invMn = solve(Mn)
+  vec = rep(0,n);vec[i]=1
+  Di = diag(vec)
+  invMDi = invMn%*%Di
+  DiinvM= Di%*%invMn
+  dbeta = -1/2/sig2*t(x)%*%(2*DiinvM%*%y-(invMDi+DiinvM)%*%x%*%beta)
+  dsig2 = -1/2/sig2^2*(sum(diag(yy%*%invMDi))-2*t(y)%*%invMDi%*%x%*%beta+t(x%*%beta)%*%invMDi%*%x%*%beta)
+  d1 = jacobian(M1i,phi,yy=yy,Di=Di)
+  dphi = 1/2/sig2*t((d1)-2*jacobian(M2,phi,vec1 = t(y),vec2=Di%*%x%*%beta)+jacobian(M2,phi,vec1 = t(x%*%beta),vec2=Di%*%x%*%beta))
+  ddelta = rbind(dbeta,dsig2,dphi)
+  return(ddelta)
+}
+
+#scheme 3 ----> x(w)=x+w*t(1)
+deltaxp = function(theta,y,x,indp) {
+  indp=matrix(indp,ncol=1)
+  l=ncol(x)
+  n =length(y)
+  r = length(theta)
+  beta = matrix(theta[1:l])
+  sig2 = theta[l+1]
+  phi = theta[(l+2):r]
+  p = length(phi)
+  Mn = MatArp(phi,n)
+  invMn = solve(Mn)
+  dbetaw=1/sig2*(indp%*%t(y-x%*%beta)-as.numeric(t(indp)%*%beta)*t(x))%*%invMn
+  dsigw=-as.numeric(t(indp)%*%beta)/sig2^2*(t(y-x%*%beta)%*%invMn)
+  dphiw=as.numeric(t(indp)%*%beta)/sig2*t(jacobian(M3,phi,vec1=(y-x%*%beta)))
+  ddelta = rbind(dbetaw,dsigw,dphiw)
+  return(ddelta)
 }

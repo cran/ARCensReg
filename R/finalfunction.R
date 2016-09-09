@@ -1,12 +1,13 @@
 #source('princfunction.R')
 
-ARCensReg = function(cc,y,x,p=1,cens='left',x_pred=NULL,miss=NULL,tol=0.0001,show.convergence=TRUE,M=10,perc=0.25,MaxIter=400,pc=0.18)
+ARCensReg = function(cc,y,x,p=1,cens='left',x_pred=NULL,miss=NULL,tol=0.0001,show.convergence=TRUE,M=10,perc=0.25,MaxIter=400,pc=0.18,show_se=TRUE)
 {
   m = length(y)
 
   if (!is.numeric(y)) stop("y must be a numeric vector")
   if (!is.numeric(x)) stop("x must be a numeric matrix")
   if (!is.matrix(x)) x=as.matrix(x)
+  if (det(t(x)%*%x)==0) stop("the columns of x must be linearly independent")
   ## Verify error at parameters specification
 
   if (cens!='left'& cens!='right') stop('cens must be left or right')
@@ -56,6 +57,7 @@ ARCensReg = function(cc,y,x,p=1,cens='left',x_pred=NULL,miss=NULL,tol=0.0001,sho
   if(!is.numeric(perc)) stop("perc must be a real number in [0,1)")
   if(perc >= 1 | perc < 0) stop("perc must be a real number in [0,1)")
   if(!is.logical(show.convergence)) stop("show.convergence must be TRUE or FALSE.")
+  if(!is.logical(show_se)) stop("show_se must be TRUE or FALSE.")
 
   #Load required libraries
 
@@ -66,7 +68,7 @@ ARCensReg = function(cc,y,x,p=1,cens='left',x_pred=NULL,miss=NULL,tol=0.0001,sho
   print(call)
   cat('\n')
 
-  out <-suppressWarnings(SAEM(cc,y,x,p,M=M,cens=cens,perc=perc,MaxIter=MaxIter,pc = pc,x_pred = x_pred,miss = miss,tol=tol))
+  out <-suppressWarnings(SAEM(cc,y,x,p,M=M,cens=cens,perc=perc,MaxIter=MaxIter,pc = pc,x_pred = x_pred,miss = miss,tol=tol,show_ep=show_se))
 
   cat('\n\n')
   cat('---------------------------------------------------\n')
@@ -74,7 +76,6 @@ ARCensReg = function(cc,y,x,p=1,cens='left',x_pred=NULL,miss=NULL,tol=0.0001,sho
   cat('---------------------------------------------------\n')
   cat('\n')
   cat("p =",p)
-  cat('\n')
   cat('\n')
   cat('---------\n')
   cat('Estimates\n')
@@ -85,9 +86,16 @@ ARCensReg = function(cc,y,x,p=1,cens='left',x_pred=NULL,miss=NULL,tol=0.0001,sho
   for (i in 1:ncol(x)) lab[i] = paste('beta',i-1,sep='')
   lab[l+1] = 'sigma2'
   for (i in ((l+2):length(lab))) lab[i] = paste('phi',i-l-1,sep='')
-  tab = round(rbind(out$theta,out$ep),4)
-  colnames(tab) = lab
-  rownames(tab) = c("","s.e.")
+  if (show_se) {
+    tab = round(rbind(out$theta,out$ep),4)
+    colnames(tab) = lab
+    rownames(tab) = c("","s.e.")
+  }
+  else {
+    tab = round(rbind(out$theta),4)
+    colnames(tab) = lab
+    rownames(tab) = c("")
+  }
   print(tab)
   cat('\n')
   cat('------------------------\n')
@@ -138,6 +146,7 @@ ARCensReg = function(cc,y,x,p=1,cens='left',x_pred=NULL,miss=NULL,tol=0.0001,sho
       suppressWarnings(plot.ts(out$Theta[,i],xlab="Iteration",ylab=labels[[i]]))
       abline(v=cpl,lty=2)
     }
+    par(mfrow=c(1,1))
   }
 
 
@@ -145,8 +154,10 @@ ARCensReg = function(cc,y,x,p=1,cens='left',x_pred=NULL,miss=NULL,tol=0.0001,sho
                                    loglik=out$loglik,AIC=out$AIC,BIC=out$BIC,AICcorr=out$AICcorr,time = out$timediff,pred=out$pred,criteria = out$criteria)
   else res = list(beta = out$beta,sigma= out$sigmae,phi = out$phi1,pi1=out$pi1,theta =out$theta,SE=out$ep,
             loglik=out$loglik,AIC=out$AIC,BIC=out$BIC,AICcorr=out$AICcorr,time = out$timediff,criteria = out$criteria)
-  if (sum(cc)==0) obj.out = list(res = res)
-  else obj.out = list(res = res,yest=out$yest,iter = out$iter)#,conv=out$Theta
+  if (sum(cc)==0) {
+    obj.out = list(res = res)
+  }
+  else obj.out = list(res = res,yest=out$yest,yyest=out$yyest,iter = out$iter)#,conv=out$Theta
   class(obj.out)  = ifelse(sum(cc)==0,'ARp-LRM','ARp-CRM')
   return(obj.out)
 }

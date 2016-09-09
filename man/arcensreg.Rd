@@ -9,8 +9,10 @@ It fits an univariate left or right censored linear regression model with autore
 }
 \usage{
 ARCensReg(cc,y,x,p=1,cens='left',x_pred=NULL,miss=NULL,
-tol=0.0001,show.convergence=TRUE,M=10,perc=0.25,MaxIter=400,pc=0.18)
+  tol=0.0001,show.convergence=TRUE,M=10,perc=0.25,MaxIter=400,
+  pc=0.18,show_se=TRUE)
 }
+
 
 \arguments{
  \item{cc}{
@@ -52,6 +54,9 @@ The maximum number of iterations of the SAEM algorithm. Default=400.
 \item{pc}{
 Percentage of initial iterations of the SAEM algorithm. It is recommended that 50<MaxIter*pc<100. Default=0.18.
 }
+\item{show_se}{
+TRUE or FALSE. Indicates if the standard errors should be estimated. Default=TRUE.
+}
 }
 \details{
 The initial values are obtained by ignoring censoring and applying maximum
@@ -73,6 +78,7 @@ If you want to fit a regression model with autoregressive errors for non-censore
 \item{pred}{Predicted values (if x_pred is not \code{NULL}).}
 \item{criteria}{Attained criteria value.}
 \item{yest}{Augmented response variable based on the fitted model.}
+\item{yyest}{Final estimative of \code{E(Y\%*\%t(Y))}.}
 \item{iter}{Number of iterations until convergence.}
 
 }
@@ -87,54 +93,40 @@ Maintainer: Fernanda L. Schumacher <\email{fernandalschumacher@gmail.com}>
 ##simple example (p = l = 1)
 #generating a sample
 set.seed(23451)
-phi = .5;p = length(phi)
-n = 50
-sigmae<-.3
-beta<-2
-pcens = .02
-x<-matrix(1,n,1)
-erro = as.matrix(arima.sim(n,model=list(ar=phi),sd=sqrt(sigmae)))
-resp<-x\%*\%beta+erro
-cte<-as.numeric(quantile(resp,probs=pcens))
-cc<-(resp<cte)+0
-y<-resp*(1-cc)+cte*cc
+n=50
+x=rep(1,n)
+dat = rARCens(n=n,beta=2,pit=.5,sig2=.3,x=x,
+                cens='left',pcens=.1)
 
 #fitting the model (quick convergence)
-fit0 = ARCensReg(cc,y,x,tol=0.0001,pc=.12,M=5)
+fit0 = ARCensReg(dat$data$cc,dat$data$y,x,tol=0.001,
+                  pc=.12,M=5,show_se=FALSE)
 
 \dontrun{
 
 ##another example (p = l = 2)
 #generating a sample
-phi = c(.4,-.28)
-p = length(phi)
-n = 100
-sigmae<-2
-beta<-matrix(c(2,1),2,1)
-pcens = .05
-x<-cbind(1,runif(n))
-error = as.matrix(arima.sim(n,model=list(ar=phi),sd=sqrt(sigmae)))
-resp<-x\%*\%beta+error
-cte<-as.numeric(quantile(resp,probs=pcens))
-cc<-(resp<cte)+0
-y<-resp*(1-cc)+cte*cc
+n=100
+x=cbind(1,runif(n))
+dat = rARCens(n=n,beta=c(2,1),pit=c(.4,-.2),sig2=.5,
+                    x=x,cens='left',pcens=.05)
 
 #fitting the model
-fit1 = ARCensReg(cc,y,x,p=2,cens="left")
+fit1 = ARCensReg(dat$data$cc,dat$data$y,x,p=2,
+                      cens="left",tol=0.0001)
 
 #plotting the augmented variable
 par(mfrow=c(1,1))
 plot.ts(fit1$yest,lty='dashed',col=4)
-lines(y)
+lines(dat$data$y)
 
 #simulating missing values
 miss = sample(1:n,3)
-y[miss] = NA
-fit2 = ARCensReg(cc,y,x,p=2,miss=miss,cens="left")
+yMISS = dat$data$y
+yMISS[miss] = NA
+fit2 = ARCensReg(dat$data$cc,yMISS,x,p=2,miss=miss,
+                cens="left",tol=0.0001)
 
-#case with no censored values
-dev.off()
-fit3 = ARCensReg(rep(0,n),resp,x,p=2)
 }
 }
 
@@ -149,4 +141,4 @@ Schumacher, F. L., Lachos, V. H. & Dey, D. K. (2016) Censored regression models 
 \keyword{censored regression}
 \keyword{autoregressive errors}
 
-\seealso{\code{\link{arima}}, \code{\link[SMNCensReg]{CensReg.SMN}}}
+\seealso{\code{\link{arima}}, \code{\link[SMNCensReg]{CensReg.SMN}},  \code{\link[ARCensReg]{InfDiag}}}
