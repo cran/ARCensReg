@@ -66,7 +66,8 @@ LogVerosCens<-function(cc,y,media,Psi,cens){
   if(sum(cc)>0){
     if(sum(cc)==m){
       auxupper<-y-gammai
-      ver<- log(pmvnorm(upper=c(auxupper),mean=rep(0,sum(cc)),sigma=Psi))
+      if (cens=='left') ver<- log(pmvnorm(upper=c(auxupper),mean=rep(0,sum(cc)),sigma=Psi)+.Machine$double.xmin)
+      else ver<- log(1-pmvnorm(upper=c(auxupper),mean=rep(0,sum(cc)),sigma=Psi)+.Machine$double.xmin)
       }
     else{
       vero = numeric(2)
@@ -74,7 +75,8 @@ LogVerosCens<-function(cc,y,media,Psi,cens){
       Sc<- Psi[cc==1,cc==1]-Psi[cc==1,cc==0]%*%solve(Psi[cc==0,cc==0])%*%Psi[cc==0,cc==1]
       auxupper<- y[cc==1]-muc
       vero[1] = dmvnorm(y[cc==0],gammai[cc==0,],Psi[cc==0,cc==0])
-      vero[2]  = pmvnorm(upper=c(auxupper),sigma=Sc)
+      if (cens=='left') vero[2]  = pmvnorm(upper=c(auxupper),sigma=Sc)
+      else vero[2]  = 1-pmvnorm(upper=c(auxupper),sigma=Sc)
       if(length(which(vero == 0)) > 0) vero[which(vero == 0)] <- .Machine$double.xmin
       ver = sum(log(vero))
     }
