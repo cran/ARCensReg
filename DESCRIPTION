@@ -2,7 +2,7 @@ Package: ARCensReg
 Type: Package
 Title: Fitting Univariate Censored Linear Regression Model with
         Autoregressive Errors
-Version: 3.0.1
+Version: 3.0.2
 Authors@R: 
   c(person(given = "Fernanda",
            family = "L. Schumacher",
@@ -40,9 +40,9 @@ Description: It fits a univariate left, right, or interval censored linear regre
     Schumacher, F. L., Lachos, V. H., Vilca-Labra, F. E., & Castro, L. M. (2018). Influence 
     diagnostics for censored regression models with autoregressive errors. Australian & New 
     Zealand Journal of Statistics, 60(2), 209-229 <doi:10.1111/anzs.12229>.
-    Valeriano, K. A., Schumacher, F. L., Galarza, C. E., & Matos, L. A. (2021). Censored 
-    autoregressive regression models with Student-t innovations. arXiv preprint 
-    <arXiv:2110.00224>.
+    Valeriano, K. A., Schumacher, F. L., Galarza, C. E., & Matos, L. A. (2024). Censored 
+    autoregressive regression models with Student‐t innovations. Canadian Journal of Statistics, 
+    52(3), 804-828 <doi:10.1002/cjs.11804>.
 License: GPL (>= 2)
 Encoding: UTF-8
 Imports: ggplot2, gridExtra, matrixcalc, methods, msm, mvtnorm,
@@ -52,13 +52,14 @@ LinkingTo: RcppArmadillo, Rcpp
 Suggests: SMNCensReg
 NeedsCompilation: yes
 Repository: CRAN
-Packaged: 2023-08-29 19:07:36 UTC; fe_fe
-Author: Fernanda L. Schumacher [aut, cre]
-    (<https://orcid.org/0000-0002-5724-8918>),
-  Katherine A. L. Valeriano [ctb]
-    (<https://orcid.org/0000-0001-6388-4753>),
-  Victor H. Lachos [ctb] (<https://orcid.org/0000-0002-7239-2459>),
-  Christian G. Morales [ctb] (<https://orcid.org/0000-0002-4818-6006>),
-  Larissa A. Matos [ctb] (<https://orcid.org/0000-0002-2635-0901>)
+Packaged: 2025-08-25 19:09:02 UTC; schumacher.313
+Author: Fernanda L. Schumacher [aut, cre] (ORCID:
+    <https://orcid.org/0000-0002-5724-8918>),
+  Katherine A. L. Valeriano [ctb] (ORCID:
+    <https://orcid.org/0000-0001-6388-4753>),
+  Victor H. Lachos [ctb] (ORCID: <https://orcid.org/0000-0002-7239-2459>),
+  Christian G. Morales [ctb] (ORCID:
+    <https://orcid.org/0000-0002-4818-6006>),
+  Larissa A. Matos [ctb] (ORCID: <https://orcid.org/0000-0002-2635-0901>)
 Maintainer: Fernanda L. Schumacher <fernandalschumacher@gmail.com>
-Date/Publication: 2023-08-29 21:00:09 UTC
+Date/Publication: 2025-08-26 09:30:09 UTC

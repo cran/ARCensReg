@@ -1,6 +1,6 @@
-283e33803261aaa84c9bbf24bca93e1f *DESCRIPTION
+3410a9632470eab0ce48137f6d033017 *DESCRIPTION
 afaec9507d793814435d7ca028270cbd *NAMESPACE
-dcb7c3bdf1b9e6d676b2b7ce47651486 *NEWS.md
+5abbc36309fe71c7f6b0710c18022196 *NEWS.md
 a284b01d4fb8f1b184b8bd0e40ecd1d4 *R/ARtCensReg_final.R
 bffd2b1e3e9a51b162877585bccdb160 *R/ARtCensReg_utils.R
 4eebc4415905281cabd16622f595d0b5 *R/RcppExports.R
@@ -11,7 +11,7 @@ bffd2b1e3e9a51b162877585bccdb160 *R/ARtCensReg_utils.R
 41cad862e161b0617e0f64e245b874b2 *R/princfunction.R
 aca861efd42b1272d313941f35d30802 *R/princfunctionDiag.R
 f99a8f901dd21324ff0007dd98c14522 *README.md
-7b3fa52a8a9a36ad0f6d9d6387357d34 *build/partial.rdb
+b3f2660ec6ffd094b47d87b7fb9372fa *build/partial.rdb
 310527e8dd9457dd91df1949d250eb3a *data/CloudCeiling.txt.gz
 54bda570ddbf2c509da4000967b304d0 *data/phosphorus.txt.gz
 381281a4d299e95accb26d873698fa56 *inst/REFERENCES.bib
@@ -25,9 +25,9 @@ aadfec7c8ecd7af153c03e8ea14ab4d2 *man/figures/README-example1.4-1.png
 d8ae8cf250a8c848ac51910ff5643f98 *man/figures/README-example2.2-1.png
 e176e86eaab0b5f2a4e61b7b96f71adc *man/figures/README-example2.3-1.png
 13944e2bca4badb14cf6e854045d25c6 *man/phosphorus.Rd
-c77afca7503f5ad955508d99dde3dc6c *man/plot.InfDiag.Rd
-705ff070d27cff69b8198d890529f664 *man/plot.Rd
-365e4794153816b40de8e85fb1a48847 *man/plot.residARpCRM.Rd
+07ec7e44d1c3cbb4ec8a78d02f0c1b63 *man/plot.InfDiag.Rd
+effccc1319126e843271b0e615f8ec90 *man/plot.Rd
+e936362507077b53aa4d3da420bd529d *man/plot.residARpCRM.Rd
 d5ac0193807cca3bfe6895323725c438 *man/predict.Rd
 0a4475438089289463510d674bebd8aa *man/print.Rd
 59d292d0b776233a775dce8247b7e06f *man/rARCens.Rd
